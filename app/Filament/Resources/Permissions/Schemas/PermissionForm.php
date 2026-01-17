@@ -12,6 +12,7 @@ class PermissionForm
         return $schema
             ->components([
                 TextInput::make('name')
+                   ->unique(ignoreRecord: false)
                     ->required(),
 
             ]);

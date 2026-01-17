@@ -3,11 +3,12 @@
 namespace App\Filament\Resources\Roles;
 
 use BackedEnum;
+use App\Models\Role;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
-use Filament\Resources\Resource;
-use Spatie\Permission\Models\Role;
 
+
+use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use App\Filament\Resources\Roles\Pages\EditRole;
 use App\Filament\Resources\Roles\Pages\ListRoles;

@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\Roles\Tables;
 
+use Filament\Tables\Table;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
 
 class RolesTable
 {
@@ -16,8 +17,13 @@ class RolesTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                TextColumn::make('guard_name')
-                    ->searchable(),
+               TextColumn::make('permissions')
+                    ->label('Permissions')
+                    ->getStateUsing(fn ($record) =>
+                        optional($record->permissions)->pluck('name')->join(', ') ?: '-'
+                    ),
+
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -32,6 +38,7 @@ class RolesTable
             ])
             ->recordActions([
                 EditAction::make(),
+                 DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

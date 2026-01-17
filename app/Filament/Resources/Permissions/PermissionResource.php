@@ -3,12 +3,13 @@
 namespace App\Filament\Resources\Permissions;
 
 use BackedEnum;
+use App\Models\Permission;
 use Filament\Tables\Table;
 use Filament\Schemas\Schema;
 use Filament\Resources\Resource;
-use Filament\Support\Icons\Heroicon;
 
-use Spatie\Permission\Models\Permission;
+
+use Filament\Support\Icons\Heroicon;
 use App\Filament\Resources\Permissions\Pages\EditPermission;
 use App\Filament\Resources\Permissions\Pages\ListPermissions;
 use App\Filament\Resources\Permissions\Pages\CreatePermission;
