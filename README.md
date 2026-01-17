@@ -1,59 +1,277 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+## KONSEP DASAR (WAJIB PAHAM)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Filament **tidak memaksa** pakai auth bawaannya.
+Yang penting bagi Filament hanyalah:
 
-## About Laravel
+✅ Ada **user yang sudah login (Laravel auth)**
+✅ Middleware `auth` + `canAccessPanel()` terpenuhi
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Jadi kita:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+* **Login pakai Laravel biasa**
+* **Filament cuma dipakai sebagai dashboard**
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ARSITEKTUR FULL MANUAL
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```
+/login        -> LOGIN LARAVEL (BUAT SENDIRI)
+POST /login   -> AUTH::attempt()
+/admin        -> FILAMENT PANEL (CEK auth Laravel)
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 1️⃣ NONAKTIFKAN AUTH FILAMENT
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Di:
 
-### Premium Partners
+```php
+app/Providers/Filament/AdminPanelProvider.php
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+❌ HAPUS:
 
-## Contributing
+```php
+->login()
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+✔️ Jadinya:
 
-## Code of Conduct
+```php
+public function panel(Panel $panel): Panel
+{
+    return $panel
+        ->path('admin')
+        ->authGuard('web');
+}
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+📌 Artinya:
 
-## Security Vulnerabilities
+* Filament **tidak punya halaman login**
+* Dia hanya cek `Auth::check()`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 2️⃣ BUAT LOGIN ROUTE LARAVEL MANUAL
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### routes/web.php
+
+```php
+use App\Http\Controllers\AuthController;
+
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+```
+
+---
+
+## 3️⃣ BUAT AuthController
+
+```bash
+php artisan make:controller AuthController
+```
+
+### app/Http/Controllers/AuthController.php
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class AuthController extends Controller
+{
+    public function showLogin()
+    {
+        return view('auth.login');
+    }
+
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        if (Auth::attempt($credentials)) {
+            $request->session()->regenerate();
+            return redirect('/admin');
+        }
+
+        return back()->withErrors([
+            'email' => 'Login gagal',
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/login');
+    }
+}
+```
+
+---
+
+## 4️⃣ BUAT VIEW LOGIN SENDIRI (BEBAS TOTAL)
+
+### resources/views/auth/login.blade.php
+
+```blade
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Sistem</title>
+    @vite('resources/css/app.css')
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+
+<form method="POST" action="/login"
+      class="bg-white p-6 rounded shadow w-96">
+    @csrf
+
+    <h2 class="text-xl font-bold mb-4 text-center">
+        Login Sistem
+    </h2>
+
+    <input name="email" type="email"
+           class="w-full border p-2 mb-3"
+           placeholder="Email">
+
+    <input name="password" type="password"
+           class="w-full border p-2 mb-4"
+           placeholder="Password">
+
+    <button class="w-full bg-blue-600 text-white py-2 rounded">
+        Login
+    </button>
+
+    @error('email')
+        <p class="text-red-500 mt-2">{{ $message }}</p>
+    @enderror
+</form>
+
+</body>
+</html>
+```
+
+👉 **Bisa kamu ganti jadi**:
+
+* Login NIP
+* Login username
+* Login no HP
+* OTP / CAPTCHA
+* SSO
+
+---
+
+## 5️⃣ HUBUNGKAN KE FILAMENT (WAJIB!)
+
+Di model `User.php`:
+
+```php
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+
+class User extends Authenticatable implements FilamentUser
+{
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true; // atau role-based
+    }
+}
+```
+
+### Contoh role-based:
+
+```php
+return $this->role === 'admin';
+```
+
+---
+
+## 6️⃣ PROTEKSI OTOMATIS FILAMENT
+
+Jika user **belum login**, Filament otomatis:
+➡️ redirect ke route `login`
+
+Pastikan route ini ada:
+
+```php
+Route::get('/login')->name('login');
+```
+
+---
+
+## 7️⃣ LOGOUT DARI FILAMENT
+
+Buat tombol logout sendiri:
+
+```blade
+<form method="POST" action="{{ route('logout') }}">
+    @csrf
+    <button>Logout</button>
+</form>
+```
+
+---
+
+## KELEBIHAN FULL MANUAL
+
+✅ UI login **bebas total**
+✅ Bisa integrasi:
+
+* SSO
+* LDAP
+* OAuth
+* OTP SMS
+* CAPTCHA
+* NIP / Pegawai
+
+---
+
+## KEKURANGAN (PENTING)
+
+❌ Tidak dapat:
+
+* Rate limit login bawaan Filament
+* UI auth siap pakai
+* Update Filament auth otomatis
+
+⚠️ Kamu **wajib**:
+
+* Amankan brute force
+* Validasi session
+* CSRF
+* Role check
+
+---
+
+## REKOMENDASI SAYA (JUJUR)
+
+| Kebutuhan       | Saran                         |
+| --------------- | ----------------------------- |
+| Admin internal  | Auth Filament (override view) |
+| Login ASN / NIP | **FULL MANUAL (INI)**         |
+| SSO / SIMPEG    | **FULL MANUAL**               |
+| Aplikasi publik | Laravel auth                  |
+
+---
+
+Kalau mau, saya bisa:
+
+* 🔐 Tambahkan **OTP / CAPTCHA**
+* 👥 Buat **admin / operator / viewer**
+* 🧩 Integrasi **SIMPEG / LDAP**
+* 🎨 Desain login profesional
+
+Tinggal bilang kebutuhan kamu.
