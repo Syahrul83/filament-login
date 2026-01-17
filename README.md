@@ -267,11 +267,4 @@ Buat tombol logout sendiri:
 
 ---
 
-Kalau mau, saya bisa:
 
-* 🔐 Tambahkan **OTP / CAPTCHA**
-* 👥 Buat **admin / operator / viewer**
-* 🧩 Integrasi **SIMPEG / LDAP**
-* 🎨 Desain login profesional
-
-Tinggal bilang kebutuhan kamu.
