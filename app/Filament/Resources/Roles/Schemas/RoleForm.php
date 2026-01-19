@@ -13,7 +13,7 @@ class RoleForm
         return $schema
             ->components([
                 TextInput::make('name')
-                   ->unique(ignoreRecord: false)
+                   ->unique(ignoreRecord: true)
                     ->required(),
                  Select::make('permissions')
                     ->relationship('permissions', 'name')
